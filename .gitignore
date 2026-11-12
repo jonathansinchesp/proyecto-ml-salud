@@ -218,3 +218,20 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Entorno virtual
+venv/
+.venv/
+env/
+
+# Dataset y archivos pesados
+chest_xray/
+data_processed/
+*.h5
+*.keras
+
+# Cache de Python y IDEs
+__pycache__/
+*.pyc
+.idea/
+.vscode/
