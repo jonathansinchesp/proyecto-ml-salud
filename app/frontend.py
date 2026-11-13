@@ -10,7 +10,8 @@ import seaborn as sns
 from PIL import Image, ImageEnhance, ImageOps
 from pathlib import Path
 
-st.set_page_config(page_title="Radiography AI - Clinical Triage", page_icon="🫁", layout="wide")
+# Configuración inicial de la página
+st.set_page_config(page_title="OPTIMAX - Inteligencia Radiológica", page_icon="🫁", layout="wide")
 
 API_BASE = "http://127.0.0.1:8000"
 MODELS_DIR = Path("models")
@@ -26,10 +27,27 @@ def load_json_data(path):
 stats_data = load_json_data(stats_path)
 history_data = load_json_data(history_path)
 
-st.markdown("## 🫁 Radiography AI | Clinical Triage Platform")
-st.caption("Sistema inteligente de apoyo al diagnóstico de neumonía pediátrica mediante Deep Learning (MobileNetV2)")
-st.markdown("---")
+# ==================== ENCABEZADO CORPORATIVO (ESTILO IMAIOS) ====================
+logo_path = Path("logo_optimax.png")
 
+col_logo, col_title, col_info = st.columns([1.2, 3, 1.5])
+
+with col_logo:
+    if logo_path.exists():
+        st.image(str(logo_path), width=220)
+    else:
+        st.markdown("### 🫁 OPTIMAX")
+
+with col_title:
+    st.markdown("## OPTIMAX | Inteligencia Radiológica")
+    st.caption("Sistema Clínico Automatizado de Apoyo al Diagnóstico de Neumonía Pediátrica")
+
+with col_info:
+    st.markdown("👤 **Dr. Asignado:** Clínica OPTIMAX  \n🌐 **Estado:** Conectado a API REST  \n📞 **Soporte Tif:** Activo")
+
+st.markdown("<hr style='margin: 5px 0px 15px 0px; border: 0.5px solid #334155;'>", unsafe_allow_html=True)
+
+# ==================== PESTAÑAS DE NAVEGACIÓN ====================
 tab1, tab2, tab3, tab4 = st.tabs([
     "🩺 Diagnosis & Grad-CAM",
     "⚙️ Entrenamiento y Parámetros",
@@ -37,7 +55,7 @@ tab1, tab2, tab3, tab4 = st.tabs([
     "ℹ️ Arquitectura y Fuente"
 ])
 
-# ==================== PESTAÑA 1: DIAGNÓSTICO (Sin el panel lateral derecho) ====================
+# ==================== PESTAÑA 1: DIAGNÓSTICO ====================
 with tab1:
     col1, col2 = st.columns([1.2, 1.4])
 
@@ -92,9 +110,32 @@ with tab1:
                 else:
                     st.error(f"🚨 NEUMONÍA {pred.upper()} DETECTADA (Confianza: {conf}%)")
 
+                # ==================== OPCIÓN 2: TARJETAS DINÁMICAS DE PROBABILIDAD ====================
                 st.markdown("**Distribución de Probabilidades:**")
-                for cat, val in probs.items():
-                    st.progress(min(int(val), 100), text=f"{cat}: {val}%")
+                card_cols = st.columns(3)
+                
+                categories_info = [
+                    ("Normal", "🟢 Pulmón Sano", "#16A34A", "#052E16"),
+                    ("Bacterial", "🔴 Neumonía Bacteriana", "#DC2626", "#450A0A"),
+                    ("Viral", "🟠 Neumonía Viral", "#EA580C", "#431407")
+                ]
+
+                for idx, (cat_key, cat_title, border_color, bg_active) in enumerate(categories_info):
+                    val = probs.get(cat_key, 0.0)
+                    is_winner = (pred == cat_key)
+                    bg_color = bg_active if is_winner else "#1E293B"
+                    border_style = f"2px solid {border_color}" if is_winner else "1px solid #334155"
+                    badge = " ⭐ PRINCIPAL" if is_winner else ""
+
+                    with card_cols[idx]:
+                        st.markdown(f"""
+                        <div style="background-color: {bg_color}; border: {border_style}; border-radius: 10px; padding: 12px; text-align: center; margin-bottom: 12px;">
+                            <div style="font-size: 13px; color: #CBD5E1; font-weight: 600;">{cat_title}</div>
+                            <div style="font-size: 26px; font-weight: 800; color: #FFFFFF; margin: 4px 0;">{val:.2f}%</div>
+                            <div style="font-size: 11px; color: {border_color}; font-weight: 700;">{badge if badge else 'Evaluado'}</div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                # ======================================================================================
 
                 if data.get("gradcam_base64"):
                     st.markdown("**Explicabilidad Visual (Grad-CAM):**")
@@ -129,11 +170,10 @@ with tab2:
             except requests.exceptions.ConnectionError:
                 st.error("❌ Backend desconectado. Asegúrate de correr FastAPI primero.")
 
-# ==================== PESTAÑA 3: MÉTRICAS (AQUÍ MOVIMOS EL RESUMEN DEL MODELO) ====================
+# ==================== PESTAÑA 3: MÉTRICAS Y FICHA TÉCNICA ====================
 with tab3:
-    st.subheader("Ficha Técnica del Modelo Activo")
+    st.subheader("Ficha Técnica del Modelo Activo (OPTIMAX AI)")
     
-    # Panel de resumen del modelo reubicado aquí de forma elegante en columnas
     if history_data:
         hp = history_data.get("hyperparameters", {})
         m_c1, m_c2, m_c3, m_c4, m_c5 = st.columns(5)
@@ -194,9 +234,10 @@ with tab3:
 # ==================== PESTAÑA 4: INFORMACIÓN ====================
 with tab4:
     st.markdown("""
-    ### Detalles Técnicos y Bibliográficos
-    * **Dataset Real:** *Chest X-Ray Images (Pneumonia)* - Kermany et al. (2018) / Repositorio Kaggle (Paul Mooney)[cite: 2]. Imágenes pediátricas reales de Guangzhou Women and Children's Medical Center.
+    ### Detalles Técnicos y Bibliográficos - OPTIMAX
+    * **Institución:** Clínica Radiológica OPTIMAX
+    * **Dataset Real:** *Chest X-Ray Images (Pneumonia)* - Kermany et al. (2018) / Repositorio Kaggle (Paul Mooney). Imágenes pediátricas reales de Guangzhou Women and Children's Medical Center.
     * **Preprocesamiento:** Estratificación 80% Train / 10% Validation / 10% Test, normalización de píxeles `[0,1]` y redimensionamiento a `224x224x3`.
     * **Modelo:** Transfer Learning con **MobileNetV2** + Capas Densas + Dropout + Explicabilidad mediante **Grad-CAM**.
-    * **Stack:** Python, TensorFlow/Keras, FastAPI (Backend REST) y Streamlit (Frontend).
+    * **Stack Tecnológico:** Python, TensorFlow/Keras, FastAPI (Backend REST) y Streamlit (Frontend).
     """)
