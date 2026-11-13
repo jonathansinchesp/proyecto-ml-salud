@@ -19,37 +19,71 @@ stats_path = MODELS_DIR / "dataset_stats.json"
 history_path = MODELS_DIR / "training_history.json"
 
 def load_json_data(path):
+    """Carga segura de archivos JSON para evitar errores si están vacíos o corruptos."""
     if path.exists():
-        with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except (json.JSONDecodeError, Exception):
+            return None
     return None
 
 stats_data = load_json_data(stats_path)
 history_data = load_json_data(history_path)
 
-# ==================== ENCABEZADO CORPORATIVO (ESTILO IMAIOS) ====================
-<<<<<<< HEAD
-logo_path = Path("logo_optimax.png")
-=======
-logo_path = Path("logo_optimax.jpg")
->>>>>>> 11156151c7a0d19ff90c4941d59ea46962e366da
+# ==================== ESTILOS CSS (SIN BARRA VACÍA Y CON IMPRESIÓN LIMPIA) ====================
+st.markdown("""
+    <style>
+    /* Reducir espacio superior desperdiciado por defecto en Streamlit */
+    .block-container {
+        padding-top: 1.2rem !important;
+        padding-bottom: 1rem !important;
+    }
+    
+    /* Ocultar barra superior decorativa de Streamlit */
+    header[data-testid="stHeader"] {
+        background-color: transparent !important;
+        height: 0px !important;
+    }
 
-col_logo, col_title, col_info = st.columns([1.2, 3, 1.5])
+    /* Reglas para optimizar la impresión y guardado como PDF */
+    @media print {
+        body {
+            background-color: #ffffff !important;
+            color: #000000 !important;
+        }
+        stButton, stFileUploader, .stSidebar {
+            display: none !important;
+        }
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# ==================== ENCABEZADO CORPORATIVO LIMPIO ====================
+logo_path = Path("logo_optimax.png")
+
+col_logo, col_title, col_info = st.columns([1.1, 3.0, 1.4], vertical_alignment="center")
 
 with col_logo:
     if logo_path.exists():
-        st.image(str(logo_path), width=220)
+        st.image(str(logo_path), width=190)
     else:
         st.markdown("### 🫁 OPTIMAX")
 
 with col_title:
-    st.markdown("## OPTIMAX | Inteligencia Radiológica")
-    st.caption("Sistema Clínico Automatizado de Apoyo al Diagnóstico de Neumonía Pediátrica")
+    st.markdown("<h2 style='margin:0; color:#F8FAFC;'>OPTIMAX | Inteligencia Radiológica</h2>", unsafe_allow_html=True)
+    st.markdown("<p style='margin:2px 0 0 0; color:#94A3B8; font-size:14px;'>Sistema Clínico Automatizado de Apoyo al Diagnóstico de Neumonía Pediátrica</p>", unsafe_allow_html=True)
 
 with col_info:
-    st.markdown("👤 **Dr. Asignado:** Clínica OPTIMAX  \n🌐 **Estado:** Conectado a API REST  \n📞 **Soporte Tif:** Activo")
+    st.markdown("""
+        <div style='background-color: #1E293B; border: 1px solid #334155; border-radius: 8px; padding: 10px 14px; color:#E2E8F0; font-size:12.5px; line-height:1.5;'>
+            👤 <b>Dr. Asignado:</b> Clínica OPTIMAX<br>
+            🌐 <b>Estado:</b> Conectado a API REST<br>
+            📞 <b>Soporte Tif:</b> Activo
+        </div>
+    """, unsafe_allow_html=True)
 
-st.markdown("<hr style='margin: 5px 0px 15px 0px; border: 0.5px solid #334155;'>", unsafe_allow_html=True)
+st.markdown("<hr style='margin: 10px 0px 15px 0px; border: 0.5px solid #334155;'>", unsafe_allow_html=True)
 
 # ==================== PESTAÑAS DE NAVEGACIÓN ====================
 tab1, tab2, tab3, tab4 = st.tabs([
@@ -59,13 +93,14 @@ tab1, tab2, tab3, tab4 = st.tabs([
     "ℹ️ Arquitectura y Fuente"
 ])
 
-# ==================== PESTAÑA 1: DIAGNÓSTICO ====================
+# ==================== PESTAÑA 1: DIAGNÓSTICO (3 COLUMNAS REORDENADAS) ====================
 with tab1:
-    col1, col2 = st.columns([1.2, 1.4])
+    col1, col2, col3 = st.columns([1.1, 1.2, 1.0], gap="medium")
 
+    # COLUMNA 1: CARGA Y PREPROCESAMIENTO
     with col1:
-        st.subheader("1. Carga y Preprocesamiento")
-        uploaded_file = st.file_uploader("Subir radiografía de tórax (JPG, PNG)", type=["jpg", "jpeg", "png"])
+        st.subheader("1. Carga de Imagen")
+        uploaded_file = st.file_uploader("Subir radiografía (JPG, PNG)", type=["jpg", "jpeg", "png"])
         
         if uploaded_file is not None:
             raw_image = Image.open(uploaded_file).convert("RGB")
@@ -80,14 +115,17 @@ with tab1:
                 proc_image = ImageOps.invert(proc_image)
 
             st.image(proc_image, caption="Vista Previa Preprocesada", use_container_width=True)
+        else:
+            st.info("Cargue una radiografía para activar los controles.")
 
+    # COLUMNA 2: DIAGNÓSTICO IA + IMAGEN GRAD-CAM
     with col2:
-        st.subheader("2. Diagnóstico IA & Mapa de Calor")
+        st.subheader("2. Diagnóstico y Explicabilidad")
         threshold = st.slider("Umbral de Confianza Mínimo (%)", 50, 95, 70, 5)
 
         if uploaded_file is not None:
             if st.button("🔍 Analizar Radiografía", type="primary", use_container_width=True):
-                with st.spinner("Ejecutando inferencia y calculando Grad-CAM..."):
+                with st.spinner("Analizando con CNN..."):
                     try:
                         buffered = io.BytesIO()
                         proc_image.save(buffered, format="JPEG")
@@ -99,54 +137,62 @@ with tab1:
                         else:
                             st.error(f"Error API: {res.text}")
                     except requests.exceptions.ConnectionError:
-                        st.error("❌ Backend desconectado. Ejecuta `uvicorn api.main:app --reload`")
+                        st.error("❌ Backend desconectado.")
 
             if "last_pred" in st.session_state:
                 data = st.session_state["last_pred"]
                 pred = data["prediction"]
                 conf = data["confidence"]
-                probs = data["probabilities"]
 
                 if conf < threshold:
-                    st.warning(f"⚠️ CONFIANZA BAJA ({conf}% < {threshold}%): Se recomienda revisión médica manual obligatoria.")
+                    st.warning(f"⚠️ CONFIANZA BAJA ({conf}% < {threshold}%): Revisión manual requerida.")
                 elif pred == "Normal":
                     st.success(f"✅ NORMAL DETECTADO (Confianza: {conf}%)")
                 else:
                     st.error(f"🚨 NEUMONÍA {pred.upper()} DETECTADA (Confianza: {conf}%)")
 
-                # ==================== OPCIÓN 2: TARJETAS DINÁMICAS DE PROBABILIDAD ====================
-                st.markdown("**Distribución de Probabilidades:**")
-                card_cols = st.columns(3)
-                
-                categories_info = [
-                    ("Normal", "🟢 Pulmón Sano", "#16A34A", "#052E16"),
-                    ("Bacterial", "🔴 Neumonía Bacteriana", "#DC2626", "#450A0A"),
-                    ("Viral", "🟠 Neumonía Viral", "#EA580C", "#431407")
-                ]
-
-                for idx, (cat_key, cat_title, border_color, bg_active) in enumerate(categories_info):
-                    val = probs.get(cat_key, 0.0)
-                    is_winner = (pred == cat_key)
-                    bg_color = bg_active if is_winner else "#1E293B"
-                    border_style = f"2px solid {border_color}" if is_winner else "1px solid #334155"
-                    badge = " ⭐ PRINCIPAL" if is_winner else ""
-
-                    with card_cols[idx]:
-                        st.markdown(f"""
-                        <div style="background-color: {bg_color}; border: {border_style}; border-radius: 10px; padding: 12px; text-align: center; margin-bottom: 12px;">
-                            <div style="font-size: 13px; color: #CBD5E1; font-weight: 600;">{cat_title}</div>
-                            <div style="font-size: 26px; font-weight: 800; color: #FFFFFF; margin: 4px 0;">{val:.2f}%</div>
-                            <div style="font-size: 11px; color: {border_color}; font-weight: 700;">{badge if badge else 'Evaluado'}</div>
-                        </div>
-                        """, unsafe_allow_html=True)
-                # ======================================================================================
-
                 if data.get("gradcam_base64"):
-                    st.markdown("**Explicabilidad Visual (Grad-CAM):**")
                     gcam_bytes = base64.b64decode(data["gradcam_base64"])
-                    st.image(gcam_bytes, caption="Regiones de activación pulmonar detectadas por la CNN", use_container_width=True)
+                    st.image(gcam_bytes, caption="Mapa de Calor Grad-CAM (Regiones de Activación)", use_container_width=True)
+                else:
+                    st.warning("Mapa de calor no disponible.")
         else:
-            st.info("👈 Carga una imagen de rayos X en el panel izquierdo para realizar la predicción en tiempo real.")
+            st.info("Esperando imagen para analizar...")
+
+    # COLUMNA 3: DISTRIBUCIÓN DE PROBABILIDADES (TARJETAS DINÁMICAS)
+    with col3:
+        st.subheader("3. Distribución de Probabilidades")
+        if "last_pred" in st.session_state and uploaded_file is not None:
+            data = st.session_state["last_pred"]
+            pred = data["prediction"]
+            probs = data["probabilities"]
+
+            st.caption("Comparativa porcentual evaluada por MobileNetV2:")
+
+            categories_info = [
+                ("Normal", "🟢 Pulmón Sano", "#16A34A", "#052E16"),
+                ("Bacterial", "🔴 Neumonía Bacteriana", "#DC2626", "#450A0A"),
+                ("Viral", "🟠 Neumonía Viral", "#EA580C", "#431407")
+            ]
+
+            for cat_key, cat_title, border_color, bg_active in categories_info:
+                val = probs.get(cat_key, 0.0)
+                is_winner = (pred == cat_key)
+                bg_color = bg_active if is_winner else "#1E293B"
+                border_style = f"2px solid {border_color}" if is_winner else "1px solid #334155"
+                badge = " ⭐ PRINCIPAL" if is_winner else "Evaluado"
+
+                st.markdown(f"""
+                <div style="background-color: {bg_color}; border: {border_style}; border-radius: 10px; padding: 14px 16px; margin-bottom: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 14px; color: #E2E8F0; font-weight: 600;">{cat_title}</span>
+                        <span style="font-size: 11px; color: {border_color}; font-weight: 700;">{badge}</span>
+                    </div>
+                    <div style="font-size: 28px; font-weight: 800; color: #FFFFFF; margin-top: 6px;">{val:.2f}%</div>
+                </div>
+                """, unsafe_allow_html=True)
+        else:
+            st.info("Los porcentajes por patología aparecerán aquí tras ejecutar el análisis.")
 
 # ==================== PESTAÑA 2: ENTRENAMIENTO ====================
 with tab2:
@@ -184,7 +230,9 @@ with tab3:
         with m_c1:
             st.metric("Arquitectura", "MobileNetV2")
         with m_c2:
-            st.metric("Último Val Accuracy", f"{history_data['val_accuracy'][-1]*100:.2f}%")
+            val_acc = history_data.get('val_accuracy', [0])
+            last_acc = val_acc[-1] if val_acc else 0
+            st.metric("Último Val Accuracy", f"{last_acc*100:.2f}%")
         with m_c3:
             st.metric("Épocas Entrenadas", hp.get('epochs', 'N/A'))
         with m_c4:
@@ -206,8 +254,8 @@ with tab3:
 
             st.markdown("**Curvas de Precisión (Accuracy)**")
             fig1, ax1 = plt.subplots(figsize=(6, 3.5))
-            ax1.plot(history_data["accuracy"], label="Train Accuracy", marker="o")
-            ax1.plot(history_data["val_accuracy"], label="Val Accuracy", marker="s")
+            ax1.plot(history_data.get("accuracy", []), label="Train Accuracy", marker="o")
+            ax1.plot(history_data.get("val_accuracy", []), label="Val Accuracy", marker="s")
             ax1.set_xlabel("Época")
             ax1.set_ylabel("Accuracy")
             ax1.legend()
@@ -220,8 +268,8 @@ with tab3:
                 sns.heatmap(
                     history_data["confusion_matrix"],
                     annot=True, fmt="d", cmap="Blues",
-                    xticklabels=history_data["class_names"],
-                    yticklabels=history_data["class_names"],
+                    xticklabels=history_data.get("class_names", ["Bacterial", "Normal", "Viral"]),
+                    yticklabels=history_data.get("class_names", ["Bacterial", "Normal", "Viral"]),
                     ax=ax2
                 )
                 ax2.set_xlabel("Predicción")
@@ -240,11 +288,7 @@ with tab4:
     st.markdown("""
     ### Detalles Técnicos y Bibliográficos - OPTIMAX
     * **Institución:** Clínica Radiológica OPTIMAX
-<<<<<<< HEAD
-    * **Dataset Real:** *Chest X-Ray Images (Pneumonia)* - Kermany et al. (2018) / Repositorio Kaggle (Paul Mooney). Imágenes pediátricas reales de Guangzhou Women and Children's Medical Center.
-=======
     * **Dataset Real:** *Chest X-Ray Images (Pneumonia)* - Kermany et al. (2018) / Repositorio Kaggle (Paul Mooney)[cite: 2]. Imágenes pediátricas reales de Guangzhou Women and Children's Medical Center.
->>>>>>> 11156151c7a0d19ff90c4941d59ea46962e366da
     * **Preprocesamiento:** Estratificación 80% Train / 10% Validation / 10% Test, normalización de píxeles `[0,1]` y redimensionamiento a `224x224x3`.
     * **Modelo:** Transfer Learning con **MobileNetV2** + Capas Densas + Dropout + Explicabilidad mediante **Grad-CAM**.
     * **Stack Tecnológico:** Python, TensorFlow/Keras, FastAPI (Backend REST) y Streamlit (Frontend).
