@@ -28,7 +28,11 @@ stats_data = load_json_data(stats_path)
 history_data = load_json_data(history_path)
 
 # ==================== ENCABEZADO CORPORATIVO (ESTILO IMAIOS) ====================
+<<<<<<< HEAD
 logo_path = Path("logo_optimax.png")
+=======
+logo_path = Path("logo_optimax.jpg")
+>>>>>>> 11156151c7a0d19ff90c4941d59ea46962e366da
 
 col_logo, col_title, col_info = st.columns([1.2, 3, 1.5])
 
@@ -236,7 +240,11 @@ with tab4:
     st.markdown("""
     ### Detalles Técnicos y Bibliográficos - OPTIMAX
     * **Institución:** Clínica Radiológica OPTIMAX
+<<<<<<< HEAD
     * **Dataset Real:** *Chest X-Ray Images (Pneumonia)* - Kermany et al. (2018) / Repositorio Kaggle (Paul Mooney). Imágenes pediátricas reales de Guangzhou Women and Children's Medical Center.
+=======
+    * **Dataset Real:** *Chest X-Ray Images (Pneumonia)* - Kermany et al. (2018) / Repositorio Kaggle (Paul Mooney)[cite: 2]. Imágenes pediátricas reales de Guangzhou Women and Children's Medical Center.
+>>>>>>> 11156151c7a0d19ff90c4941d59ea46962e366da
     * **Preprocesamiento:** Estratificación 80% Train / 10% Validation / 10% Test, normalización de píxeles `[0,1]` y redimensionamiento a `224x224x3`.
     * **Modelo:** Transfer Learning con **MobileNetV2** + Capas Densas + Dropout + Explicabilidad mediante **Grad-CAM**.
     * **Stack Tecnológico:** Python, TensorFlow/Keras, FastAPI (Backend REST) y Streamlit (Frontend).
