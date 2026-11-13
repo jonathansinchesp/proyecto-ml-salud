@@ -37,9 +37,9 @@ tab1, tab2, tab3, tab4 = st.tabs([
     "ℹ️ Arquitectura y Fuente"
 ])
 
-# ==================== PESTAÑA 1: DIAGNÓSTICO ====================
+# ==================== PESTAÑA 1: DIAGNÓSTICO (Sin el panel lateral derecho) ====================
 with tab1:
-    col1, col2, col3 = st.columns([1.1, 1.2, 1])
+    col1, col2 = st.columns([1.2, 1.4])
 
     with col1:
         st.subheader("1. Carga y Preprocesamiento")
@@ -48,7 +48,6 @@ with tab1:
         if uploaded_file is not None:
             raw_image = Image.open(uploaded_file).convert("RGB")
             
-            # Controles reales de imagen
             contrast = st.slider("Contraste Clínico", 0.5, 2.0, 1.0, 0.1)
             brightness = st.slider("Brillo", 0.5, 1.5, 1.0, 0.1)
             invert = st.toggle("Invertir Escala (Negativo)")
@@ -102,19 +101,7 @@ with tab1:
                     gcam_bytes = base64.b64decode(data["gradcam_base64"])
                     st.image(gcam_bytes, caption="Regiones de activación pulmonar detectadas por la CNN", use_container_width=True)
         else:
-            st.info("👈 Carga una imagen de rayos X para realizar la predicción.")
-
-    with col3:
-        st.subheader("3. Resumen del Modelo Activo")
-        if history_data:
-            hp = history_data.get("hyperparameters", {})
-            st.metric("Arquitectura", "MobileNetV2")
-            st.metric("Último Val Accuracy", f"{history_data['val_accuracy'][-1]*100:.2f}%")
-            st.write(f"**Épocas entrenadas:** {hp.get('epochs', 'N/A')}")
-            st.write(f"**Learning Rate:** {hp.get('learning_rate', 'N/A')}")
-            st.write(f"**Batch Size:** {hp.get('batch_size', 'N/A')}")
-        else:
-            st.warning("Sin historial de entrenamiento.")
+            st.info("👈 Carga una imagen de rayos X en el panel izquierdo para realizar la predicción en tiempo real.")
 
 # ==================== PESTAÑA 2: ENTRENAMIENTO ====================
 with tab2:
@@ -123,7 +110,7 @@ with tab2:
 
     c_p1, c_p2, c_p3 = st.columns(3)
     with c_p1:
-        epochs_input = st.number_input("Número de Épocas (Epochs)", min_value=1, max_value=30, value=3)
+        epochs_input = st.number_input("Número de Épocas (Epochs)", min_value=1, max_value=30, value=2)
     with c_p2:
         lr_input = st.selectbox("Tasa de Aprendizaje (Learning Rate)", [0.001, 0.0005, 0.0001, 0.00005], index=2)
     with c_p3:
@@ -142,12 +129,33 @@ with tab2:
             except requests.exceptions.ConnectionError:
                 st.error("❌ Backend desconectado. Asegúrate de correr FastAPI primero.")
 
-# ==================== PESTAÑA 3: MÉTRICAS ====================
+# ==================== PESTAÑA 3: MÉTRICAS (AQUÍ MOVIMOS EL RESUMEN DEL MODELO) ====================
 with tab3:
+    st.subheader("Ficha Técnica del Modelo Activo")
+    
+    # Panel de resumen del modelo reubicado aquí de forma elegante en columnas
+    if history_data:
+        hp = history_data.get("hyperparameters", {})
+        m_c1, m_c2, m_c3, m_c4, m_c5 = st.columns(5)
+        with m_c1:
+            st.metric("Arquitectura", "MobileNetV2")
+        with m_c2:
+            st.metric("Último Val Accuracy", f"{history_data['val_accuracy'][-1]*100:.2f}%")
+        with m_c3:
+            st.metric("Épocas Entrenadas", hp.get('epochs', 'N/A'))
+        with m_c4:
+            st.metric("Learning Rate", hp.get('learning_rate', 'N/A'))
+        with m_c5:
+            st.metric("Batch Size", hp.get('batch_size', 'N/A'))
+    else:
+        st.warning("⚠️ Sin historial de entrenamiento disponible.")
+
+    st.markdown("---")
     st.subheader("Métricas de Rendimiento y Validación")
+    
     if stats_data and history_data:
-        m1, m2 = st.columns(2)
-        with m1:
+        col_m1, col_m2 = st.columns(2)
+        with col_m1:
             st.markdown("**Distribución de Clases en el Dataset**")
             df_classes = pd.DataFrame(list(stats_data["classes"].items()), columns=["Clase", "Imágenes"])
             st.bar_chart(df_classes.set_index("Clase"))
@@ -161,7 +169,7 @@ with tab3:
             ax1.legend()
             st.pyplot(fig1)
 
-        with m2:
+        with col_m2:
             if "confusion_matrix" in history_data:
                 st.markdown("**Matriz de Confusión (Conjunto Test)**")
                 fig2, ax2 = plt.subplots(figsize=(5, 4))
@@ -187,7 +195,7 @@ with tab3:
 with tab4:
     st.markdown("""
     ### Detalles Técnicos y Bibliográficos
-    * **Dataset Real:** *Chest X-Ray Images (Pneumonia)* - Kermany et al. (2018) / Repositorio Kaggle (Paul Mooney). Imágenes pediátricas reales de Guangzhou Women and Children's Medical Center.
+    * **Dataset Real:** *Chest X-Ray Images (Pneumonia)* - Kermany et al. (2018) / Repositorio Kaggle (Paul Mooney)[cite: 2]. Imágenes pediátricas reales de Guangzhou Women and Children's Medical Center.
     * **Preprocesamiento:** Estratificación 80% Train / 10% Validation / 10% Test, normalización de píxeles `[0,1]` y redimensionamiento a `224x224x3`.
     * **Modelo:** Transfer Learning con **MobileNetV2** + Capas Densas + Dropout + Explicabilidad mediante **Grad-CAM**.
     * **Stack:** Python, TensorFlow/Keras, FastAPI (Backend REST) y Streamlit (Frontend).
