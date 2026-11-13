@@ -1,0 +1,25 @@
+{
+    "total_images": 5856,
+    "classes": {
+        "Normal": 1583,
+        "Bacterial": 2780,
+        "Viral": 1493
+    },
+    "splits": {
+        "train": {
+            "Normal": 1266,
+            "Bacterial": 2224,
+            "Viral": 1194
+        },
+        "val": {
+            "Normal": 158,
+            "Bacterial": 278,
+            "Viral": 149
+        },
+        "test": {
+            "Normal": 159,
+            "Bacterial": 278,
+            "Viral": 150
+        }
+    }
+}
