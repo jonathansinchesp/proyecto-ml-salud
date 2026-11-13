@@ -1,28 +1,22 @@
 import streamlit as st
 import requests
 import json
-from PIL import Image
+import base64
 import io
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import seaborn as sns
+from PIL import Image, ImageEnhance, ImageOps
 from pathlib import Path
 
-# Configuración de la página
-st.set_page_config(
-    page_title="Radiography AI - Clinical Triage",
-    page_icon="🫁",
-    layout="wide"
-)
+st.set_page_config(page_title="Radiography AI - Clinical Triage", page_icon="🫁", layout="wide")
 
-# URL del Backend FastAPI
-API_URL = "http://127.0.0.1:8000/predict"
-
-# Cargar estadísticas y métricas guardadas
+API_BASE = "http://127.0.0.1:8000"
 MODELS_DIR = Path("models")
 stats_path = MODELS_DIR / "dataset_stats.json"
 history_path = MODELS_DIR / "training_history.json"
 
-@st.cache_data
 def load_json_data(path):
     if path.exists():
         with open(path, "r", encoding="utf-8") as f:
@@ -32,112 +26,169 @@ def load_json_data(path):
 stats_data = load_json_data(stats_path)
 history_data = load_json_data(history_path)
 
-# Estilo visual moderno y limpio
-st.markdown("""
-    <style>
-    .main-title { font-size: 28px; font-weight: 700; color: #1E3A8A; }
-    .sub-title { font-size: 16px; color: #64748B; }
-    .metric-card { background-color: #F8FAFC; padding: 15px; border-radius: 10px; border: 1px solid #E2E8F0; }
-    </style>
-""", unsafe_allow_html=True)
-
-# Encabezado principal
-st.markdown('<p class="main-title">🫁 Radiography AI | Clinical Triage Platform</p>', unsafe_allow_html=True)
-st.markdown('<p class="sub-title">Sistema inteligente de apoyo al diagnóstico médico de neumonía mediante Deep Learning</p>', unsafe_allow_html=True)
+st.markdown("## 🫁 Radiography AI | Clinical Triage Platform")
+st.caption("Sistema inteligente de apoyo al diagnóstico de neumonía pediátrica mediante Deep Learning (MobileNetV2)")
 st.markdown("---")
 
-# Pestañas de la aplicación (igual a tu diseño ideal)
-tab1, tab2, tab3 = st.tabs(["🩺 Diagnosis", "📊 Dataset & Model Metrics", "ℹ️ Acerca del Proyecto"])
+tab1, tab2, tab3, tab4 = st.tabs([
+    "🩺 Diagnosis & Grad-CAM",
+    "⚙️ Entrenamiento y Parámetros",
+    "📊 Métricas y Evaluación",
+    "ℹ️ Arquitectura y Fuente"
+])
 
+# ==================== PESTAÑA 1: DIAGNÓSTICO ====================
 with tab1:
-    col1, col2 = st.columns([1, 1])
+    col1, col2, col3 = st.columns([1.1, 1.2, 1])
 
     with col1:
-        st.markdown("### **Panel de Carga de Imagen**")
-        uploaded_file = st.file_uploader("Seleccione una radiografía de tórax (JPEG, PNG)", type=["jpg", "jpeg", "png"])
+        st.subheader("1. Carga y Preprocesamiento")
+        uploaded_file = st.file_uploader("Subir radiografía de tórax (JPG, PNG)", type=["jpg", "jpeg", "png"])
         
         if uploaded_file is not None:
-            image = Image.open(uploaded_file).convert("RGB")
-            st.image(image, caption="Radiografía de Tórax Cargada", use_column_width=True)
+            raw_image = Image.open(uploaded_file).convert("RGB")
             
-            # Controles de visualización (simulados para la interfaz)
-            st.markdown("#### Controles de Visualización")
-            zoom = st.slider("Zoom / Escala", 1.0, 2.0, 1.0)
-            brightness = st.slider("Contraste / Brillo", 0.5, 1.5, 1.0)
+            # Controles reales de imagen
+            contrast = st.slider("Contraste Clínico", 0.5, 2.0, 1.0, 0.1)
+            brightness = st.slider("Brillo", 0.5, 1.5, 1.0, 0.1)
+            invert = st.toggle("Invertir Escala (Negativo)")
+
+            proc_image = ImageEnhance.Contrast(raw_image).enhance(contrast)
+            proc_image = ImageEnhance.Brightness(proc_image).enhance(brightness)
+            if invert:
+                proc_image = ImageOps.invert(proc_image)
+
+            st.image(proc_image, caption="Vista Previa Preprocesada", use_container_width=True)
 
     with col2:
-        st.markdown("### **Resultado del Diagnóstico (IA)**")
-        
+        st.subheader("2. Diagnóstico IA & Mapa de Calor")
+        threshold = st.slider("Umbral de Confianza Mínimo (%)", 50, 95, 70, 5)
+
         if uploaded_file is not None:
-            if st.button("Ejecutar Diagnóstico Clínico", type="primary"):
-                with st.spinner("Analizando patrones pulmonares con MobileNetV2..."):
+            if st.button("🔍 Analizar Radiografía", type="primary", use_container_width=True):
+                with st.spinner("Ejecutando inferencia y calculando Grad-CAM..."):
                     try:
-                        # Convertir imagen para enviar a la API
                         buffered = io.BytesIO()
-                        image.save(buffered, format="JPEG")
+                        proc_image.save(buffered, format="JPEG")
                         buffered.seek(0)
                         
-                        files = {"file": ("image.jpg", buffered, "image/jpeg")}
-                        response = requests.post(API_URL, files=files)
-                        
-                        if response.status_code == 200:
-                            res = response.json()
-                            pred = res["prediction"]
-                            conf = res["confidence"]
-                            probs = res["probabilities"]
-                            
-                            # Alerta visual según el diagnóstico
-                            if pred == "Normal":
-                                st.success(f"✅ DIAGNÓSTICO: PULMONES NORMALES (Confianza: {conf}%)")
-                            else:
-                                st.error(f"⚠️ ALERTA: NEUMONÍA DETECTADA [{pred.upper()}] (Confianza: {conf}%)")
-                            
-                            st.markdown("#### Probabilidades por Categoría:")
-                            for cat, p_val in probs.items():
-                                st.progress(int(p_val), text=f"{cat}: {p_val}%")
-                                
+                        res = requests.post(f"{API_BASE}/predict", files={"file": ("xray.jpg", buffered, "image/jpeg")})
+                        if res.status_code == 200:
+                            st.session_state["last_pred"] = res.json()
                         else:
-                            st.error(f"Error en el servidor API: {response.text}")
-                            
+                            st.error(f"Error API: {res.text}")
                     except requests.exceptions.ConnectionError:
-                        st.error("No se pudo conectar con el Backend API. Asegúrate de ejecutar `uvicorn api.main:app --reload` en otra terminal.")
+                        st.error("❌ Backend desconectado. Ejecuta `uvicorn api.main:app --reload`")
+
+            if "last_pred" in st.session_state:
+                data = st.session_state["last_pred"]
+                pred = data["prediction"]
+                conf = data["confidence"]
+                probs = data["probabilities"]
+
+                if conf < threshold:
+                    st.warning(f"⚠️ CONFIANZA BAJA ({conf}% < {threshold}%): Se recomienda revisión médica manual obligatoria.")
+                elif pred == "Normal":
+                    st.success(f"✅ NORMAL DETECTADO (Confianza: {conf}%)")
+                else:
+                    st.error(f"🚨 NEUMONÍA {pred.upper()} DETECTADA (Confianza: {conf}%)")
+
+                st.markdown("**Distribución de Probabilidades:**")
+                for cat, val in probs.items():
+                    st.progress(min(int(val), 100), text=f"{cat}: {val}%")
+
+                if data.get("gradcam_base64"):
+                    st.markdown("**Explicabilidad Visual (Grad-CAM):**")
+                    gcam_bytes = base64.b64decode(data["gradcam_base64"])
+                    st.image(gcam_bytes, caption="Regiones de activación pulmonar detectadas por la CNN", use_container_width=True)
         else:
-            st.info("👈 Sube una radiografía de tórax a la izquierda para comenzar el análisis en tiempo real.")
+            st.info("👈 Carga una imagen de rayos X para realizar la predicción.")
 
+    with col3:
+        st.subheader("3. Resumen del Modelo Activo")
+        if history_data:
+            hp = history_data.get("hyperparameters", {})
+            st.metric("Arquitectura", "MobileNetV2")
+            st.metric("Último Val Accuracy", f"{history_data['val_accuracy'][-1]*100:.2f}%")
+            st.write(f"**Épocas entrenadas:** {hp.get('epochs', 'N/A')}")
+            st.write(f"**Learning Rate:** {hp.get('learning_rate', 'N/A')}")
+            st.write(f"**Batch Size:** {hp.get('batch_size', 'N/A')}")
+        else:
+            st.warning("Sin historial de entrenamiento.")
+
+# ==================== PESTAÑA 2: ENTRENAMIENTO ====================
 with tab2:
-    st.markdown("### **Análisis Exploratorio y Métricas de Entrenamiento**")
-    
-    if stats_data and history_data:
-        c1, c2 = st.columns(2)
-        
-        with c1:
-            st.markdown("#### Distribución de Clases (Dataset Real de Kaggle)")
-            classes_df = pd.DataFrame(list(stats_data["classes"].items()), columns=["Categoría", "Cantidad"])
-            st.bar_chart(classes_df.set_index("Categoría"))
-            st.caption("Fuente bibliográfica: Paul Mooney (Chest X-Ray Images - Kaggle / Guangzhou Hospital)")
+    st.subheader("Configuración de Hiperparámetros y Entrenamiento en Vivo")
+    st.write("Ajusta los parámetros de la red neuronal y entrena el modelo directamente a través de la API.")
 
-        with c2:
-            st.markdown("#### Evolución del Accuracy durante el Entrenamiento")
-            fig, ax = plt.subplots(figsize=(6, 4))
-            ax.plot(history_data["accuracy"], label="Train Accuracy", color="#2563EB", linewidth=2)
-            ax.plot(history_data["val_accuracy"], label="Val Accuracy", color="#DC2626", linestyle="--", linewidth=2)
-            ax.set_title("Precisión del Modelo por Época")
-            ax.set_xlabel("Épocas")
-            ax.set_ylabel("Accuracy")
-            ax.legend()
-            st.pyplot(fig)
-            
-    else:
-        st.warning("⚠️ No se encontraron métricas guardadas. Ejecuta primero `python src/train.py`.")
+    c_p1, c_p2, c_p3 = st.columns(3)
+    with c_p1:
+        epochs_input = st.number_input("Número de Épocas (Epochs)", min_value=1, max_value=30, value=3)
+    with c_p2:
+        lr_input = st.selectbox("Tasa de Aprendizaje (Learning Rate)", [0.001, 0.0005, 0.0001, 0.00005], index=2)
+    with c_p3:
+        batch_input = st.selectbox("Tamaño de Lote (Batch Size)", [16, 32, 64], index=1)
 
+    if st.button("🚀 Iniciar Entrenamiento del Modelo", type="primary"):
+        with st.spinner(f"Entrenando MobileNetV2 por {epochs_input} épocas... Esto puede tardar unos minutos."):
+            try:
+                payload = {"epochs": int(epochs_input), "learning_rate": float(lr_input), "batch_size": int(batch_input)}
+                response = requests.post(f"{API_BASE}/train", json=payload, timeout=1800)
+                if response.status_code == 200:
+                    st.success("🎉 ¡Entrenamiento completado y modelo actualizado en producción!")
+                    st.rerun()
+                else:
+                    st.error(f"Error durante el entrenamiento: {response.text}")
+            except requests.exceptions.ConnectionError:
+                st.error("❌ Backend desconectado. Asegúrate de correr FastAPI primero.")
+
+# ==================== PESTAÑA 3: MÉTRICAS ====================
 with tab3:
-    st.markdown("### **Información Académica del Proyecto**")
+    st.subheader("Métricas de Rendimiento y Validación")
+    if stats_data and history_data:
+        m1, m2 = st.columns(2)
+        with m1:
+            st.markdown("**Distribución de Clases en el Dataset**")
+            df_classes = pd.DataFrame(list(stats_data["classes"].items()), columns=["Clase", "Imágenes"])
+            st.bar_chart(df_classes.set_index("Clase"))
+
+            st.markdown("**Curvas de Precisión (Accuracy)**")
+            fig1, ax1 = plt.subplots(figsize=(6, 3.5))
+            ax1.plot(history_data["accuracy"], label="Train Accuracy", marker="o")
+            ax1.plot(history_data["val_accuracy"], label="Val Accuracy", marker="s")
+            ax1.set_xlabel("Época")
+            ax1.set_ylabel("Accuracy")
+            ax1.legend()
+            st.pyplot(fig1)
+
+        with m2:
+            if "confusion_matrix" in history_data:
+                st.markdown("**Matriz de Confusión (Conjunto Test)**")
+                fig2, ax2 = plt.subplots(figsize=(5, 4))
+                sns.heatmap(
+                    history_data["confusion_matrix"],
+                    annot=True, fmt="d", cmap="Blues",
+                    xticklabels=history_data["class_names"],
+                    yticklabels=history_data["class_names"],
+                    ax=ax2
+                )
+                ax2.set_xlabel("Predicción")
+                ax2.set_ylabel("Real")
+                st.pyplot(fig2)
+
+            if "classification_report" in history_data:
+                st.markdown("**Reporte de Clasificación Detallado**")
+                rep_df = pd.DataFrame(history_data["classification_report"]).transpose()
+                st.dataframe(rep_df.style.format("{:.3f}"))
+    else:
+        st.info("Entrena el modelo al menos una vez para generar las métricas completas.")
+
+# ==================== PESTAÑA 4: INFORMACIÓN ====================
+with tab4:
     st.markdown("""
-    * **Asignatura:** Proyectos de Machine Learning (2026-2)
-    * **Profesor:** Ing. Sergio Granizo MSc.
-    * **Objetivo:** Desarrollar una aplicación funcional (Backend + Frontend en Python) aplicando inteligencia artificial para resolver un problema real de salud.
-    * **Arquitectura:** 
-        * *Modelo:* Transfer Learning con MobileNetV2 (Red Neuronal Convolucional).
-        * *Backend:* FastAPI (API REST asíncrona).
-        * *Frontend:* Streamlit (Dashboard interactivo).
+    ### Detalles Técnicos y Bibliográficos
+    * **Dataset Real:** *Chest X-Ray Images (Pneumonia)* - Kermany et al. (2018) / Repositorio Kaggle (Paul Mooney). Imágenes pediátricas reales de Guangzhou Women and Children's Medical Center.
+    * **Preprocesamiento:** Estratificación 80% Train / 10% Validation / 10% Test, normalización de píxeles `[0,1]` y redimensionamiento a `224x224x3`.
+    * **Modelo:** Transfer Learning con **MobileNetV2** + Capas Densas + Dropout + Explicabilidad mediante **Grad-CAM**.
+    * **Stack:** Python, TensorFlow/Keras, FastAPI (Backend REST) y Streamlit (Frontend).
     """)
