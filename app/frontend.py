@@ -19,7 +19,7 @@ API_BASE = "http://127.0.0.1:8000"
 MODELS_DIR = BASE_DIR / "models"
 stats_path = MODELS_DIR / "dataset_stats.json"
 history_path = MODELS_DIR / "training_history.json"
-logo_path = BASE_DIR / "logo_optimax.png"
+logo_path = BASE_DIR / "logo_optimax.jpg"
 
 def load_json_data(path):
     """Carga segura de archivos JSON."""
