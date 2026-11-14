@@ -60,7 +60,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==================== ENCABEZADO CORPORATIVO LIMPIO ====================
-logo_path = Path("logo_optimax.png")
+logo_path = Path("logo_optimax.jpg")
 
 col_logo, col_title, col_info = st.columns([1.1, 3.0, 1.4], vertical_alignment="center")
 
