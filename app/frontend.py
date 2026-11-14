@@ -13,7 +13,7 @@ from pathlib import Path
 # Configuración inicial de la página
 st.set_page_config(page_title="OPTIMAX - Inteligencia Radiológica", page_icon="🫁", layout="wide")
 
-# Rutas absolutas relativas al proyecto (evita que el logo o los JSON fallen)
+# Rutas absolutas relativas al proyecto
 BASE_DIR = Path(__file__).resolve().parent.parent
 API_BASE = "http://127.0.0.1:8000"
 MODELS_DIR = BASE_DIR / "models"
@@ -34,29 +34,57 @@ def load_json_data(path):
 stats_data = load_json_data(stats_path)
 history_data = load_json_data(history_path)
 
-# ==================== ESTILOS CSS (AQUÍ PUEDES JUGAR CON LOS COLORES) ====================
+# ==================== ESTILOS CSS (MODO LIGHT EN GRIS OPACO + DARK INTACTO) ====================
 st.markdown("""
     <style>
     /* Reducir espacio superior desperdiciado */
     .block-container {
-        padding-top: 1.2rem !important;
+        padding-top: 1.5rem !important;
         padding-bottom: 1rem !important;
     }
     
     header[data-testid="stHeader"] {
         background-color: transparent !important;
-        height: 0px !important;
     }
 
-    /* --- PALETA DE COLORES DEL ENCABEZADO (MODIFICA AQUÍ PARA PROBAR TONOS) --- */
+    /* --- FORZAR FONDO GRIS OPACO EN MODO CLARO (EVITA EL BLANCO BRILLANTE) --- */
+    @container style(--background-color: #ffffff) {
+        .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"], section.main {
+            background-color: #BFB9B8 !important;
+        }
+        div[data-testid="stVerticalBlockBorderWrapper"] {
+            background-color: #4D4544 !important;
+            border: 1.5px solid #94A3B8 !important;
+            border-top: 3px solid #0284C7 !important;
+            box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08) !important;
+        }
+    }
+
+    /* Regla adicional para asegurar compatibilidad en navegadores con tema claro activo */
+    [data-theme="light"] .stApp, 
+    body[data-theme="light"] .stApp {
+        background-color: #BFB9B8 !important;
+    }
+
+    /* --- PALETA DE COLORES DEL ENCABEZADO --- */
     div[data-testid="stHorizontalBlock"]:has(#optimax-header-anchor) {
         background: linear-gradient(135deg, #071936 0%, #0B3B75 55%, #0077B6 100%) !important;
         border: 1.5px solid #00B4D8 !important;
-        border-bottom: 3px solid #F97316 !important; /* Acento naranja del logo */
+        border-bottom: 3px solid #F97316 !important;
         border-radius: 14px !important;
         padding: 16px 22px !important;
         box-shadow: 0 6px 20px rgba(0, 180, 216, 0.25) !important;
-        margin-bottom: 12px !important;
+        margin-bottom: 14px !important;
+    }
+
+    /* --- RECUADROS ESTILIZADOS PARA LAS 3 COLUMNAS (MODO OSCURO) --- */
+    div[data-testid="stVerticalBlockBorderWrapper"] {
+        background-color: rgba(100, 116, 139, 0.09);
+        border: 1.5px solid rgba(2, 132, 199, 0.45);
+        border-top: 3px solid #0284C7;
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
     }
 
     @media print {
@@ -81,7 +109,6 @@ with col_logo:
         st.markdown("### 🫁 OPTIMAX")
 
 with col_title:
-    # Ancla invisible para que el CSS detecte exactamente esta fila y la pinte
     st.markdown("""
         <div id="optimax-header-anchor">
             <h2 style='margin:0; color:#FFFFFF; letter-spacing: 0.5px; text-shadow: 0 2px 4px rgba(0,0,0,0.4);'>
@@ -110,103 +137,109 @@ tab1, tab2, tab3, tab4 = st.tabs([
     "ℹ️ Arquitectura y Fuente"
 ])
 
-# ==================== PESTAÑA 1: DIAGNÓSTICO (3 COLUMNAS) ====================
+# ==================== PESTAÑA 1: DIAGNÓSTICO (3 COLUMNAS EN RECUADROS) ====================
 with tab1:
     col1, col2, col3 = st.columns([1.1, 1.2, 1.0], gap="medium")
 
+    # COLUMNA 1: CARGA Y PREPROCESAMIENTO
     with col1:
-        st.subheader("1. Carga de Imagen")
-        uploaded_file = st.file_uploader("Subir radiografía (JPG, PNG)", type=["jpg", "jpeg", "png"])
-        
-        if uploaded_file is not None:
-            raw_image = Image.open(uploaded_file).convert("RGB")
+        with st.container(border=True):
+            st.subheader("1. Carga de Imagen")
+            uploaded_file = st.file_uploader("Subir radiografía (JPG, PNG)", type=["jpg", "jpeg", "png"])
             
-            contrast = st.slider("Contraste Clínico", 0.5, 2.0, 1.0, 0.1)
-            brightness = st.slider("Brillo", 0.5, 1.5, 1.0, 0.1)
-            invert = st.toggle("Invertir Escala (Negativo)")
+            if uploaded_file is not None:
+                raw_image = Image.open(uploaded_file).convert("RGB")
+                
+                contrast = st.slider("Contraste Clínico", 0.5, 2.0, 1.0, 0.1)
+                brightness = st.slider("Brillo", 0.5, 1.5, 1.0, 0.1)
+                invert = st.toggle("Invertir Escala (Negativo)")
 
-            proc_image = ImageEnhance.Contrast(raw_image).enhance(contrast)
-            proc_image = ImageEnhance.Brightness(proc_image).enhance(brightness)
-            if invert:
-                proc_image = ImageOps.invert(proc_image)
+                proc_image = ImageEnhance.Contrast(raw_image).enhance(contrast)
+                proc_image = ImageEnhance.Brightness(proc_image).enhance(brightness)
+                if invert:
+                    proc_image = ImageOps.invert(proc_image)
 
-            st.image(proc_image, caption="Vista Previa Preprocesada", use_container_width=True)
-        else:
-            st.info("Cargue una radiografía para activar los controles.")
+                st.image(proc_image, caption="Vista Previa Preprocesada", use_container_width=True)
+            else:
+                st.info("Cargue una radiografía para activar los controles.")
 
+    # COLUMNA 2: DIAGNÓSTICO IA + IMAGEN GRAD-CAM
     with col2:
-        st.subheader("2. Diagnóstico y Explicabilidad")
-        threshold = st.slider("Umbral de Confianza Mínimo (%)", 50, 95, 70, 5)
+        with st.container(border=True):
+            st.subheader("2. Diagnóstico y Explicabilidad")
+            threshold = st.slider("Umbral de Confianza Mínimo (%)", 50, 95, 70, 5)
 
-        if uploaded_file is not None:
-            if st.button("🔍 Analizar Radiografía", type="primary", use_container_width=True):
-                with st.spinner("Analizando con CNN..."):
-                    try:
-                        buffered = io.BytesIO()
-                        proc_image.save(buffered, format="JPEG")
-                        buffered.seek(0)
-                        
-                        res = requests.post(f"{API_BASE}/predict", files={"file": ("xray.jpg", buffered, "image/jpeg")})
-                        if res.status_code == 200:
-                            st.session_state["last_pred"] = res.json()
-                        else:
-                            st.error(f"Error API: {res.text}")
-                    except requests.exceptions.ConnectionError:
-                        st.error("❌ Backend desconectado.")
+            if uploaded_file is not None:
+                if st.button("🔍 Analizar Radiografía", type="primary", use_container_width=True):
+                    with st.spinner("Analizando con CNN..."):
+                        try:
+                            buffered = io.BytesIO()
+                            proc_image.save(buffered, format="JPEG")
+                            buffered.seek(0)
+                            
+                            res = requests.post(f"{API_BASE}/predict", files={"file": ("xray.jpg", buffered, "image/jpeg")})
+                            if res.status_code == 200:
+                                st.session_state["last_pred"] = res.json()
+                            else:
+                                st.error(f"Error API: {res.text}")
+                        except requests.exceptions.ConnectionError:
+                            st.error("❌ Backend desconectado.")
 
-            if "last_pred" in st.session_state:
+                if "last_pred" in st.session_state:
+                    data = st.session_state["last_pred"]
+                    pred = data["prediction"]
+                    conf = data["confidence"]
+
+                    if conf < threshold:
+                        st.warning(f"⚠️ CONFIANZA BAJA ({conf}% < {threshold}%): Revisión manual requerida.")
+                    elif pred == "Normal":
+                        st.success(f"✅ NORMAL DETECTADO (Confianza: {conf}%)")
+                    else:
+                        st.error(f"🚨 NEUMONÍA {pred.upper()} DETECTADA (Confianza: {conf}%)")
+
+                    if data.get("gradcam_base64"):
+                        gcam_bytes = base64.b64decode(data["gradcam_base64"])
+                        st.image(gcam_bytes, caption="Mapa de Calor Grad-CAM (Regiones de Activación)", use_container_width=True)
+                    else:
+                        st.warning("Mapa de calor no disponible.")
+            else:
+                st.info("Esperando imagen para analizar...")
+
+    # COLUMNA 3: DISTRIBUCIÓN DE PROBABILIDADES (TARJETAS DINÁMICAS)
+    with col3:
+        with st.container(border=True):
+            st.subheader("3. Distribución de Probabilidades")
+            if "last_pred" in st.session_state and uploaded_file is not None:
                 data = st.session_state["last_pred"]
                 pred = data["prediction"]
-                conf = data["confidence"]
+                probs = data["probabilities"]
 
-                if conf < threshold:
-                    st.warning(f"⚠️ CONFIANZA BAJA ({conf}% < {threshold}%): Revisión manual requerida.")
-                elif pred == "Normal":
-                    st.success(f"✅ NORMAL DETECTADO (Confianza: {conf}%)")
-                else:
-                    st.error(f"🚨 NEUMONÍA {pred.upper()} DETECTADA (Confianza: {conf}%)")
+                st.caption("Comparativa porcentual evaluada por MobileNetV2:")
 
-                if data.get("gradcam_base64"):
-                    gcam_bytes = base64.b64decode(data["gradcam_base64"])
-                    st.image(gcam_bytes, caption="Mapa de Calor Grad-CAM (Regiones de Activación)", use_container_width=True)
-                else:
-                    st.warning("Mapa de calor no disponible.")
-        else:
-            st.info("Esperando imagen para analizar...")
+                categories_info = [
+                    ("Normal", "🟢 Pulmón Sano", "#16A34A", "#052E16"),
+                    ("Bacterial", "🔴 Neumonía Bacteriana", "#DC2626", "#450A0A"),
+                    ("Viral", "🟠 Neumonía Viral", "#EA580C", "#431407")
+                ]
 
-    with col3:
-        st.subheader("3. Distribución de Probabilidades")
-        if "last_pred" in st.session_state and uploaded_file is not None:
-            data = st.session_state["last_pred"]
-            pred = data["prediction"]
-            probs = data["probabilities"]
+                for cat_key, cat_title, border_color, bg_active in categories_info:
+                    val = probs.get(cat_key, 0.0)
+                    is_winner = (pred == cat_key)
+                    bg_color = bg_active if is_winner else "#1E293B"
+                    border_style = f"2px solid {border_color}" if is_winner else "1px solid #334155"
+                    badge = " ⭐ PRINCIPAL" if is_winner else "Evaluado"
 
-            st.caption("Comparativa porcentual evaluada por MobileNetV2:")
-
-            categories_info = [
-                ("Normal", "🟢 Pulmón Sano", "#16A34A", "#052E16"),
-                ("Bacterial", "🔴 Neumonía Bacteriana", "#DC2626", "#450A0A"),
-                ("Viral", "🟠 Neumonía Viral", "#EA580C", "#431407")
-            ]
-
-            for cat_key, cat_title, border_color, bg_active in categories_info:
-                val = probs.get(cat_key, 0.0)
-                is_winner = (pred == cat_key)
-                bg_color = bg_active if is_winner else "#1E293B"
-                border_style = f"2px solid {border_color}" if is_winner else "1px solid #334155"
-                badge = " ⭐ PRINCIPAL" if is_winner else "Evaluado"
-
-                st.markdown(f"""
-                <div style="background-color: {bg_color}; border: {border_style}; border-radius: 10px; padding: 14px 16px; margin-bottom: 12px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span style="font-size: 14px; color: #E2E8F0; font-weight: 600;">{cat_title}</span>
-                        <span style="font-size: 11px; color: {border_color}; font-weight: 700;">{badge}</span>
+                    st.markdown(f"""
+                    <div style="background-color: {bg_color}; border: {border_style}; border-radius: 10px; padding: 14px 16px; margin-bottom: 12px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 14px; color: #E2E8F0; font-weight: 600;">{cat_title}</span>
+                            <span style="font-size: 11px; color: {border_color}; font-weight: 700;">{badge}</span>
+                        </div>
+                        <div style="font-size: 28px; font-weight: 800; color: #FFFFFF; margin-top: 6px;">{val:.2f}%</div>
                     </div>
-                    <div style="font-size: 28px; font-weight: 800; color: #FFFFFF; margin-top: 6px;">{val:.2f}%</div>
-                </div>
-                """, unsafe_allow_html=True)
-        else:
-            st.info("Los porcentajes por patología aparecerán aquí tras ejecutar el análisis.")
+                    """, unsafe_allow_html=True)
+            else:
+                st.info("Los porcentajes por patología aparecerán aquí tras ejecutar el análisis.")
 
 # ==================== PESTAÑA 2: ENTRENAMIENTO ====================
 with tab2:
