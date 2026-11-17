@@ -13,6 +13,108 @@ from pathlib import Path
 # Configuración inicial de la página
 st.set_page_config(page_title="OPTIMAX - Inteligencia Radiológica", page_icon="🫁", layout="wide")
 
+# ==================== ESTILOS CSS GENERALES Y FOOTER ====================
+st.markdown("""
+    <style>
+    /* 1. Evitar scroll horizontal en toda la app */
+    html, body, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
+        overflow-x: hidden !important;
+    }
+
+    /* 2. Espacio reservado al final para evitar que el footer se sobreponga */
+    .block-container {
+        padding-top: 1.5rem !important;
+        padding-bottom: 0rem !important; /* Quitamos el padding extra */
+    }
+
+    header[data-testid="stHeader"] {
+        background-color: transparent !important;
+    }
+
+    /* --- FORZAR FONDO GRIS OPACO EN MODO CLARO --- */
+    @container style(--background-color: #ffffff) {
+        .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"], section.main {
+            background-color: #BFB9B8 !important;
+        }
+        div[data-testid="stVerticalBlockBorderWrapper"] {
+            background-color: #4D4544 !important;
+            border: 1.5px solid #94A3B8 !important;
+            border-top: 3px solid #0284C7 !important;
+            box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08) !important;
+        }
+    }
+    [data-theme="light"] .stApp, body[data-theme="light"] .stApp {
+        background-color: #BFB9B8 !important;
+    }
+
+    /* --- ENCABEZADO --- */
+    div[data-testid="stHorizontalBlock"]:has(#optimax-header-anchor) {
+        background: linear-gradient(135deg, #071936 0%, #0B3B75 55%, #0077B6 100%) !important;
+        border: 1.5px solid #00B4D8 !important;
+        border-bottom: 3px solid #F97316 !important;
+        border-radius: 14px !important;
+        padding: 16px 22px !important;
+        box-shadow: 0 6px 20px rgba(0, 180, 216, 0.25) !important;
+        margin-bottom: 14px !important;
+    }
+
+    /* --- RECUADROS --- */
+    div[data-testid="stVerticalBlockBorderWrapper"] {
+        background-color: rgba(100, 116, 139, 0.09);
+        border: 1.5px solid rgba(2, 132, 199, 0.45);
+        border-top: 3px solid #0284C7;
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    }
+
+    /* --- ESTILOS DEL FOOTER (FLUJO NORMAL, ANCHO COMPLETO) --- */
+    footer {visibility: hidden;}
+    
+    .custom-footer {
+        /* Técnica para estirar a lo ancho de la pantalla sin generar scroll */
+        width: calc(100vw - 0px) !important;
+        margin-left: calc(-50vw + 50%) !important;
+        background: linear-gradient(180deg, #0B3B75 0%, #071936 100%);
+        color: #E0F2FE;
+        padding: 30px 20px 20px 20px;
+        border-top: 4px solid #F97316;
+        font-family: 'sans serif', sans-serif;
+        box-sizing: border-box;
+        margin-top: 40px;
+    }
+    
+    .footer-content {
+        display: flex;
+        justify-content: space-around;
+        flex-wrap: wrap;
+        max-width: 1200px;
+        margin: 0 auto;
+        text-align: center;
+    }
+    .footer-item {
+        flex: 1;
+        min-width: 200px;
+        margin: 10px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    .footer-icon { font-size: 24px; color: #38BDF8; margin-bottom: 8px; }
+    .footer-text { font-size: 14px; font-weight: 500; }
+    .footer-divider { border-top: 1px solid rgba(56, 189, 248, 0.3); margin: 20px auto; width: 80%; }
+    .footer-bottom { text-align: center; font-size: 12px; color: #94A3B8; padding-bottom: 10px; }
+    .footer-links { margin-bottom: 10px; }
+    .footer-links a { color: #E0F2FE; text-decoration: none; margin: 0 15px; font-size: 13px; transition: color 0.3s; }
+    .footer-links a:hover { color: #F97316; }
+
+    @media print {
+        body { background-color: #ffffff !important; color: #000000 !important; }
+        stButton, stFileUploader, .stSidebar, .custom-footer { display: none !important; }
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 # Rutas absolutas relativas al proyecto
 BASE_DIR = Path(__file__).resolve().parent.parent
 API_BASE = "http://127.0.0.1:8000"
@@ -33,71 +135,6 @@ def load_json_data(path):
 
 stats_data = load_json_data(stats_path)
 history_data = load_json_data(history_path)
-
-# ==================== ESTILOS CSS (MODO LIGHT EN GRIS OPACO + DARK INTACTO) ====================
-st.markdown("""
-    <style>
-    /* Reducir espacio superior desperdiciado */
-    .block-container {
-        padding-top: 1.5rem !important;
-        padding-bottom: 1rem !important;
-    }
-    
-    header[data-testid="stHeader"] {
-        background-color: transparent !important;
-    }
-
-    /* --- FORZAR FONDO GRIS OPACO EN MODO CLARO (EVITA EL BLANCO BRILLANTE) --- */
-    @container style(--background-color: #ffffff) {
-        .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"], section.main {
-            background-color: #BFB9B8 !important;
-        }
-        div[data-testid="stVerticalBlockBorderWrapper"] {
-            background-color: #4D4544 !important;
-            border: 1.5px solid #94A3B8 !important;
-            border-top: 3px solid #0284C7 !important;
-            box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08) !important;
-        }
-    }
-
-    /* Regla adicional para asegurar compatibilidad en navegadores con tema claro activo */
-    [data-theme="light"] .stApp, 
-    body[data-theme="light"] .stApp {
-        background-color: #BFB9B8 !important;
-    }
-
-    /* --- PALETA DE COLORES DEL ENCABEZADO --- */
-    div[data-testid="stHorizontalBlock"]:has(#optimax-header-anchor) {
-        background: linear-gradient(135deg, #071936 0%, #0B3B75 55%, #0077B6 100%) !important;
-        border: 1.5px solid #00B4D8 !important;
-        border-bottom: 3px solid #F97316 !important;
-        border-radius: 14px !important;
-        padding: 16px 22px !important;
-        box-shadow: 0 6px 20px rgba(0, 180, 216, 0.25) !important;
-        margin-bottom: 14px !important;
-    }
-
-    /* --- RECUADROS ESTILIZADOS PARA LAS 3 COLUMNAS (MODO OSCURO) --- */
-    div[data-testid="stVerticalBlockBorderWrapper"] {
-        background-color: rgba(100, 116, 139, 0.09);
-        border: 1.5px solid rgba(2, 132, 199, 0.45);
-        border-top: 3px solid #0284C7;
-        border-radius: 12px;
-        padding: 16px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-    }
-
-    @media print {
-        body {
-            background-color: #ffffff !important;
-            color: #000000 !important;
-        }
-        stButton, stFileUploader, .stSidebar {
-            display: none !important;
-        }
-    }
-    </style>
-""", unsafe_allow_html=True)
 
 # ==================== ENCABEZADO CORPORATIVO ====================
 col_logo, col_title, col_info = st.columns([1.1, 3.0, 1.4], vertical_alignment="center")
@@ -137,11 +174,10 @@ tab1, tab2, tab3, tab4 = st.tabs([
     "ℹ️ Arquitectura y Fuente"
 ])
 
-# ==================== PESTAÑA 1: DIAGNÓSTICO (3 COLUMNAS EN RECUADROS) ====================
+# ==================== PESTAÑA 1: DIAGNÓSTICO ====================
 with tab1:
     col1, col2, col3 = st.columns([1.1, 1.2, 1.0], gap="medium")
 
-    # COLUMNA 1: CARGA Y PREPROCESAMIENTO
     with col1:
         with st.container(border=True):
             st.subheader("1. Carga de Imagen")
@@ -163,7 +199,6 @@ with tab1:
             else:
                 st.info("Cargue una radiografía para activar los controles.")
 
-    # COLUMNA 2: DIAGNÓSTICO IA + IMAGEN GRAD-CAM
     with col2:
         with st.container(border=True):
             st.subheader("2. Diagnóstico y Explicabilidad")
@@ -205,7 +240,6 @@ with tab1:
             else:
                 st.info("Esperando imagen para analizar...")
 
-    # COLUMNA 3: DISTRIBUCIÓN DE PROBABILIDADES (TARJETAS DINÁMICAS)
     with col3:
         with st.container(border=True):
             st.subheader("3. Distribución de Probabilidades")
@@ -340,3 +374,28 @@ with tab4:
     * **Modelo:** Transfer Learning con **MobileNetV2** + Capas Densas + Dropout + Explicabilidad mediante **Grad-CAM**.
     * **Stack Tecnológico:** Python, TensorFlow/Keras, FastAPI (Backend REST) y Streamlit (Frontend).
     """)
+
+# ==================== PIE DE PÁGINA CORPORATIVO AL FINAL ====================
+footer_html = """
+<div class="custom-footer">
+    <div class="footer-content">
+        <div class="footer-item"><div class="footer-icon">📞</div><div class="footer-text">+593 99 945 9060</div></div>
+        <div class="footer-item"><div class="footer-icon">☎️</div><div class="footer-text">(02) 223-0209</div></div>
+        <div class="footer-item"><div class="footer-icon">✉️</div><div class="footer-text">info@optimax-radiologia.ec</div></div>
+        <div class="footer-item"><div class="footer-icon">📍</div><div class="footer-text">Av. 10 de Agosto N21-123 y San Gregorio</div></div>
+    </div>
+    <div class="footer-divider"></div>
+    <div style="text-align: center; margin-bottom: 20px;">
+        <h3 style="color: #FFFFFF; margin: 0; font-size: 22px; font-weight: 800; letter-spacing: 2px;">OPTIMAX</h3>
+        <p style="color: #38BDF8; margin: 5px 0; font-size: 13px; font-weight: 600; letter-spacing: 1px;">INTELIGENCIA RADIOLÓGICA</p>
+        <div class="footer-links" style="margin-top: 15px;">
+            <a href="#">Perfiles Médicos</a><span style="color: #334155;">|</span>
+            <a href="#">Portal de Resultados</a><span style="color: #334155;">|</span>
+            <a href="#">Solicitudes de Diagnóstico</a><span style="color: #334155;">|</span>
+            <a href="#">Aviso de Privacidad</a>
+        </div>
+    </div>
+    <div class="footer-bottom">© 2024 OPTIMAX - Inteligencia Radiológica. Realizado por el equipo de desarrollo clínico.</div>
+</div>
+"""
+st.html(footer_html)
