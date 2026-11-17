@@ -11,7 +11,7 @@ from PIL import Image, ImageEnhance, ImageOps
 from pathlib import Path
 
 # Configuración inicial de la página
-st.set_page_config(page_title="OPTIMAX - Inteligencia Radiológica", page_icon="🫁", layout="wide")
+st.set_page_config(page_title="OPTIMAX - Inteligencia Radiológica", page_icon="⚕️", layout="wide")
 
 # ==================== ESTILOS CSS GENERALES Y FOOTER ====================
 st.markdown("""
@@ -143,7 +143,7 @@ with col_logo:
     if logo_path.exists():
         st.image(str(logo_path), width=190)
     else:
-        st.markdown("### 🫁 OPTIMAX")
+        st.markdown("### ⚕️ OPTIMAX")
 
 with col_title:
     st.markdown("""
@@ -160,18 +160,18 @@ with col_title:
 with col_info:
     st.markdown("""
         <div style='background-color: rgba(4, 15, 32, 0.78); border: 1px solid #38BDF8; border-radius: 10px; padding: 10px 14px; color:#F0F9FF; font-size:12.5px; line-height:1.5;'>
-            👤 <b>Dr. Asignado:</b> Clínica OPTIMAX<br>
-            🌐 <b>Estado:</b> <span style='color:#4ADE80; font-weight:bold;'>Conectado a API REST</span><br>
-            📞 <b>Soporte Tif:</b> Activo
+            📧 <b>Correo:</b> info@optimax-radiologia.ec<br>
+            🛡️ <b>Soporte Tif:</b> +593 995767938<br>
+            🟢 <b>Estado:</b> <span style='color:#4ADE80; font-weight:bold;'>Conectado a API REST</span><br>
         </div>
     """, unsafe_allow_html=True)
 
 # ==================== PESTAÑAS DE NAVEGACIÓN ====================
 tab1, tab2, tab3, tab4 = st.tabs([
-    "🩺 Diagnosis & Grad-CAM",
-    "⚙️ Entrenamiento y Parámetros",
-    "📊 Métricas y Evaluación",
-    "ℹ️ Arquitectura y Fuente"
+    "🔬 Diagnosis & Grad-CAM",
+    "🧠 Entrenamiento y Parámetros",
+    "📈 Métricas y Evaluación",
+    "📑 Arquitectura y Fuente"
 ])
 
 # ==================== PESTAÑA 1: DIAGNÓSTICO ====================
@@ -205,7 +205,7 @@ with tab1:
             threshold = st.slider("Umbral de Confianza Mínimo (%)", 50, 95, 70, 5)
 
             if uploaded_file is not None:
-                if st.button("🔍 Analizar Radiografía", type="primary", use_container_width=True):
+                if st.button("🔬 Analizar Radiografía", type="primary", use_container_width=True):
                     with st.spinner("Analizando con CNN..."):
                         try:
                             buffered = io.BytesIO()
@@ -218,7 +218,7 @@ with tab1:
                             else:
                                 st.error(f"Error API: {res.text}")
                         except requests.exceptions.ConnectionError:
-                            st.error("❌ Backend desconectado.")
+                            st.error("🚫 Backend desconectado.")
 
                 if "last_pred" in st.session_state:
                     data = st.session_state["last_pred"]
@@ -228,9 +228,9 @@ with tab1:
                     if conf < threshold:
                         st.warning(f"⚠️ CONFIANZA BAJA ({conf}% < {threshold}%): Revisión manual requerida.")
                     elif pred == "Normal":
-                        st.success(f"✅ NORMAL DETECTADO (Confianza: {conf}%)")
+                        st.success(f"✔️ NORMAL DETECTADO (Confianza: {conf}%)")
                     else:
-                        st.error(f"🚨 NEUMONÍA {pred.upper()} DETECTADA (Confianza: {conf}%)")
+                        st.error(f"🛑 NEUMONÍA {pred.upper()} DETECTADA (Confianza: {conf}%)")
 
                     if data.get("gradcam_base64"):
                         gcam_bytes = base64.b64decode(data["gradcam_base64"])
@@ -261,7 +261,7 @@ with tab1:
                     is_winner = (pred == cat_key)
                     bg_color = bg_active if is_winner else "#1E293B"
                     border_style = f"2px solid {border_color}" if is_winner else "1px solid #334155"
-                    badge = " ⭐ PRINCIPAL" if is_winner else "Evaluado"
+                    badge = " 🎯 PRINCIPAL" if is_winner else "Evaluado"
 
                     st.markdown(f"""
                     <div style="background-color: {bg_color}; border: {border_style}; border-radius: 10px; padding: 14px 16px; margin-bottom: 12px;">
@@ -288,18 +288,18 @@ with tab2:
     with c_p3:
         batch_input = st.selectbox("Tamaño de Lote (Batch Size)", [16, 32, 64], index=1)
 
-    if st.button("🚀 Iniciar Entrenamiento del Modelo", type="primary"):
+    if st.button("⚡ Iniciar Entrenamiento del Modelo", type="primary"):
         with st.spinner(f"Entrenando MobileNetV2 por {epochs_input} épocas... Esto puede tardar unos minutos."):
             try:
                 payload = {"epochs": int(epochs_input), "learning_rate": float(lr_input), "batch_size": int(batch_input)}
                 response = requests.post(f"{API_BASE}/train", json=payload, timeout=1800)
                 if response.status_code == 200:
-                    st.success("🎉 ¡Entrenamiento completado y modelo actualizado en producción!")
+                    st.success("✔️ ¡Entrenamiento completado y modelo actualizado en producción!")
                     st.rerun()
                 else:
                     st.error(f"Error durante el entrenamiento: {response.text}")
             except requests.exceptions.ConnectionError:
-                st.error("❌ Backend desconectado. Asegúrate de correr FastAPI primero.")
+                st.error("🚫 Backend desconectado. Asegúrate de correr FastAPI primero.")
 
 # ==================== PESTAÑA 3: MÉTRICAS Y FICHA TÉCNICA ====================
 with tab3:
@@ -368,22 +368,16 @@ with tab3:
 with tab4:
     st.markdown("""
     ### Detalles Técnicos y Bibliográficos - OPTIMAX
-    * **Institución:** Clínica Radiológica OPTIMAX
-    * **Dataset Real:** *Chest X-Ray Images (Pneumonia)* - Kermany et al. (2018) / Repositorio Kaggle (Paul Mooney). Imágenes pediátricas reales de Guangzhou Women and Children's Medical Center.
-    * **Preprocesamiento:** Estratificación 80% Train / 10% Validation / 10% Test, normalización de píxeles `[0,1]` y redimensionamiento a `224x224x3`.
-    * **Modelo:** Transfer Learning con **MobileNetV2** + Capas Densas + Dropout + Explicabilidad mediante **Grad-CAM**.
-    * **Stack Tecnológico:** Python, TensorFlow/Keras, FastAPI (Backend REST) y Streamlit (Frontend).
+- **Institución:** Clínica Radiológica OPTIMAX
+- **Dataset Real:** *Chest X-Ray Images (Pneumonia)* - Kermany et al. (2018) / Repositorio Kaggle (Paul Mooney). Imágenes pediátricas reales de Guangzhou Women and Children's Medical Center.
+- **Preprocesamiento:** Estratificación 80% Train / 10% Validation / 10% Test, normalización de píxeles `[0,1]` y redimensionamiento a `224x224x3`.
+- **Modelo:** Transfer Learning con **MobileNetV2** + Capas Densas + Dropout + Explicabilidad mediante **Grad-CAM**.
+- **Stack Tecnológico:** Python, TensorFlow/Keras, FastAPI (Backend REST) y Streamlit (Frontend).
     """)
 
 # ==================== PIE DE PÁGINA CORPORATIVO AL FINAL ====================
 footer_html = """
 <div class="custom-footer">
-    <div class="footer-content">
-        <div class="footer-item"><div class="footer-icon">📞</div><div class="footer-text">+593 99 945 9060</div></div>
-        <div class="footer-item"><div class="footer-icon">☎️</div><div class="footer-text">(02) 223-0209</div></div>
-        <div class="footer-item"><div class="footer-icon">✉️</div><div class="footer-text">info@optimax-radiologia.ec</div></div>
-        <div class="footer-item"><div class="footer-icon">📍</div><div class="footer-text">Av. 10 de Agosto N21-123 y San Gregorio</div></div>
-    </div>
     <div class="footer-divider"></div>
     <div style="text-align: center; margin-bottom: 20px;">
         <h3 style="color: #FFFFFF; margin: 0; font-size: 22px; font-weight: 800; letter-spacing: 2px;">OPTIMAX</h3>
@@ -395,7 +389,7 @@ footer_html = """
             <a href="#">Aviso de Privacidad</a>
         </div>
     </div>
-    <div class="footer-bottom">© 2024 OPTIMAX - Inteligencia Radiológica. Realizado por el equipo de desarrollo clínico.</div>
+    <div class="footer-bottom">© 2026 OPTIMAX - Inteligencia Radiológica. Realizado por el equipo de desarrollo OPTIMAX.</div>
 </div>
 """
 st.html(footer_html)
