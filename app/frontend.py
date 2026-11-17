@@ -108,9 +108,43 @@ st.markdown("""
     .footer-links a { color: #E0F2FE; text-decoration: none; margin: 0 15px; font-size: 13px; transition: color 0.3s; }
     .footer-links a:hover { color: #F97316; }
 
+    /* =====================================================================
+       REGLAS DE IMPRESIÓN: OCULTAR ENCABEZADO AZUL Y FORZAR TODO EN 1 HOJA
+       ===================================================================== */
     @media print {
-        body { background-color: #ffffff !important; color: #000000 !important; }
-        stButton, stFileUploader, .stSidebar, .custom-footer { display: none !important; }
+        @page {
+            margin: 0.5cm !important;
+        }
+        html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
+            background-color: #ffffff !important;
+            color: #000000 !important;
+            zoom: 0.78 !important; /* Escala exacta para obligar a que todo entre en 1 sola página */
+        }
+        .block-container {
+            padding-top: 0.2rem !important;
+            padding-bottom: 0rem !important;
+            max-width: 100% !important;
+        }
+        /* Ocultar el encabezado azul completo, pestañas, botones, uploader y footer al imprimir */
+        div[data-testid="stHorizontalBlock"]:has(#optimax-header-anchor),
+        div[data-baseweb="tab-list"],
+        button,
+        [data-testid="stFileUploader"],
+        .stSidebar,
+        .custom-footer {
+            display: none !important;
+        }
+        /* Compactar recuadros de resultados para evitar saltos de página */
+        div[data-testid="stVerticalBlockBorderWrapper"] {
+            background-color: #ffffff !important;
+            border: 1px solid #94A3B8 !important;
+            border-top: 2px solid #0284C7 !important;
+            box-shadow: none !important;
+            padding: 10px !important;
+            margin-bottom: 0px !important;
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+        }
     }
     </style>
 """, unsafe_allow_html=True)
